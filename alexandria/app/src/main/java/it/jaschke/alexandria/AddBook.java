@@ -1,6 +1,5 @@
 package it.jaschke.alexandria;
 
-import android.app.Activity;
 import android.content.Context;
 import android.content.Intent;
 import android.database.Cursor;
@@ -9,31 +8,56 @@ import android.support.design.widget.Snackbar;
 import android.support.v4.app.Fragment;
 import android.support.v4.app.LoaderManager;
 import android.support.v4.content.CursorLoader;
-import android.text.Editable;
+import android.support.v4.content.Loader;
+import android.support.v7.widget.AppCompatImageButton;
 import android.text.TextUtils;
-import android.text.TextWatcher;
 import android.util.Patterns;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.Button;
 import android.widget.EditText;
 import android.widget.ImageView;
 import android.widget.TextView;
-import android.widget.Toast;
 
 import com.google.zxing.integration.android.IntentIntegrator;
 import com.google.zxing.integration.android.IntentResult;
+import com.jakewharton.rxbinding.widget.RxTextView;
 
+import butterknife.Bind;
+import butterknife.ButterKnife;
+import butterknife.OnClick;
 import it.jaschke.alexandria.data.AlexandriaContract;
 import it.jaschke.alexandria.services.BookService;
 import it.jaschke.alexandria.services.DownloadImage;
+import rx.android.schedulers.AndroidSchedulers;
 
 
 public class AddBook extends Fragment implements LoaderManager.LoaderCallbacks<Cursor> {
-    private static final String TAG = "INTENT_TO_SCAN_ACTIVITY";
-    private EditText mTextEan;
+    private static final String ISBN_13_START = "978";
+
+    @Bind(R.id.txt_ean)
+    EditText mTxtEan;
+    @Bind(R.id.scan_button)
+    Button mScanButton;
+    @Bind(R.id.bookTitle)
+    TextView mBookTitle;
+    @Bind(R.id.bookSubTitle)
+    TextView mBookSubTitle;
+    @Bind(R.id.bookCover)
+    ImageView mBookCover;
+    @Bind(R.id.authors)
+    TextView mAuthors;
+    @Bind(R.id.categories)
+    TextView mCategories;
+
+    @Bind(R.id.delete_button)
+    AppCompatImageButton mDeleteButton;
+    @Bind(R.id.next_button)
+    AppCompatImageButton mNextButton;
+
     private final int LOADER_ID = 1;
-    private View rootView;
+    private View mRootView;
     private final String EAN_CONTENT = "eanContent";
     private static final String SCAN_FORMAT = "scanFormat";
     private static final String SCAN_CONTENTS = "scanContents";
@@ -49,8 +73,8 @@ public class AddBook extends Fragment implements LoaderManager.LoaderCallbacks<C
     @Override
     public void onSaveInstanceState(Bundle outState) {
         super.onSaveInstanceState(outState);
-        if (mTextEan != null) {
-            outState.putString(EAN_CONTENT, mTextEan.getText().toString());
+        if (mTxtEan != null) {
+            outState.putString(EAN_CONTENT, mTxtEan.getText().toString());
         }
     }
 
@@ -61,7 +85,7 @@ public class AddBook extends Fragment implements LoaderManager.LoaderCallbacks<C
         if (result != null) {
             String scanned_ean = result.getContents();
             if (!TextUtils.isEmpty(scanned_ean)) {
-                mTextEan.setText(scanned_ean);
+                mTxtEan.setText(scanned_ean);
             }
         }
     }
@@ -70,74 +94,56 @@ public class AddBook extends Fragment implements LoaderManager.LoaderCallbacks<C
     @Override
     public View onCreateView(final LayoutInflater inflater, ViewGroup container, Bundle savedInstanceState) {
 
-        rootView = inflater.inflate(R.layout.fragment_add_book, container, false);
-        mTextEan = (EditText) rootView.findViewById(R.id.txt_ean);
+        mRootView = inflater.inflate(R.layout.fragment_add_book, container, false);
+        ButterKnife.bind(this, mRootView);
 
-        mTextEan.addTextChangedListener(new TextWatcher() {
-            @Override
-            public void beforeTextChanged(CharSequence s, int start, int count, int after) {
-                //no need
-            }
-
-            @Override
-            public void onTextChanged(CharSequence s, int start, int before, int count) {
-                //no need
-            }
-
-            @Override
-            public void afterTextChanged(Editable s) {
-                performSearch(s.toString());
-            }
-        });
-
-        rootView.findViewById(R.id.scan_button).setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                // This is the callback method that the system will invoke when your button is
-                // clicked. You might do this by launching another app or by including the
-                //functionality directly in this app.
-                // Hint: Use a Try/Catch block to handle the Intent dispatch gracefully, if you
-                // are using an external app.
-                //when you're done, remove the toast below.
-                Context context = getActivity();
-                CharSequence text = "This button should let you scan a book for its barcode!";
-                int duration = Toast.LENGTH_SHORT;
-
-                Toast toast = Toast.makeText(context, text, duration);
-                toast.show();
-
-                scanBarcode();
-
-            }
-        });
-
-        rootView.findViewById(R.id.save_button).setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View view) {
-                mTextEan.setText("");
-            }
-        });
-
-        rootView.findViewById(R.id.delete_button).setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View view) {
-                Intent bookIntent = new Intent(getActivity(), BookService.class);
-                bookIntent.putExtra(BookService.EAN, mTextEan.getText().toString());
-                bookIntent.setAction(BookService.DELETE_BOOK);
-                getActivity().startService(bookIntent);
-                mTextEan.setText("");
-            }
-        });
+        RxTextView
+                .textChanges(mTxtEan)
+                .map(charSequence -> {
+                    clearFields();
+                    return charSequence;
+                })
+                .filter(t -> (t.length() == 10 && !t.toString().startsWith(ISBN_13_START)) || t.length() == 13) // ISBN Numbers can only be 10 or 13 Characters Long. ISBN 10 should not start with 978
+                .map(CharSequence::toString)
+                .map(s -> {
+                    if (s.length() == 10) { //Our filter already makes sure we do not get a false isbn10 number while typing
+                        s = ISBN_13_START + s;
+                    }
+                    return s;
+                })
+                .filter(s -> s.startsWith(ISBN_13_START)) //make Sure all ISBN 13 numbers start with 978
+                .observeOn(AndroidSchedulers.mainThread())
+                .subscribe(this::performSearch);
 
         if (savedInstanceState != null) {
-            mTextEan.setText(savedInstanceState.getString(EAN_CONTENT));
-            mTextEan.setHint("");
+            mTxtEan.setText(savedInstanceState.getString(EAN_CONTENT));
         }
 
-        return rootView;
+
+        return mRootView;
     }
 
-    private void performSearch(String ean) {
+    @OnClick(R.id.delete_button)
+    public void deleteBook() {
+        Intent bookIntent = new Intent(getActivity(), BookService.class);
+        bookIntent.putExtra(BookService.EAN, mTxtEan.getText().toString());
+        bookIntent.setAction(BookService.DELETE_BOOK);
+        getActivity().startService(bookIntent);
+        mTxtEan.setText("");
+    }
+
+    @OnClick(R.id.next_button)
+    public void clearInput() {
+        mTxtEan.setText("");
+    }
+
+    @OnClick(R.id.scan_button)
+    public void scanBarcode() {
+        IntentIntegrator.forSupportFragment(this).initiateScan();
+    }
+
+
+    public void performSearch(String ean) {
 
         //Once we have an ISBN, start a book intent
         if (!ConnectionUtils.isInternetConnectionAvailable(getContext())) {
@@ -145,28 +151,17 @@ public class AddBook extends Fragment implements LoaderManager.LoaderCallbacks<C
                 mSnackbarNetworkError.dismiss();
             }
 
-            mSnackbarNetworkError = Snackbar.make(rootView, R.string.no_connection_warning, Snackbar.LENGTH_LONG);
             final String finalEan = ean;
-            mSnackbarNetworkError.setAction(R.string.action_retry, new View.OnClickListener() {
-                @Override
-                public void onClick(View v) {
-                    performSearch(finalEan);
-                }
+
+            mSnackbarNetworkError = Snackbar.make(mRootView, R.string.no_connection_warning, Snackbar.LENGTH_LONG);
+            mSnackbarNetworkError.setAction(R.string.action_retry, v -> {
+                performSearch(finalEan);
             });
             mSnackbarNetworkError.show();
 
             return;
         }
 
-        //catch isbn10 numbers
-        if (ean.length() == 10 && !ean.startsWith("978")) {
-            ean = "978" + ean;
-        }
-        if (ean.length() < 13) {
-            clearFields();
-            return;
-        }
-        //Once we have an ISBN, start a book intent
         Intent bookIntent = new Intent(getActivity(), BookService.class);
         bookIntent.putExtra(BookService.EAN, ean);
         bookIntent.setAction(BookService.FETCH_BOOK);
@@ -174,23 +169,24 @@ public class AddBook extends Fragment implements LoaderManager.LoaderCallbacks<C
         restartLoader();
     }
 
-    private void scanBarcode() {
-        IntentIntegrator.forSupportFragment(this).initiateScan();
-    }
 
     private void restartLoader() {
         getLoaderManager().restartLoader(LOADER_ID, null, this);
     }
 
     @Override
-    public android.support.v4.content.Loader<Cursor> onCreateLoader(int id, Bundle args) {
-        if (mTextEan.getText().length() == 0) {
+    public Loader<Cursor> onCreateLoader(int id, Bundle args) {
+
+        if (mTxtEan.getText().length() == 0) {
             return null;
         }
-        String eanStr = mTextEan.getText().toString();
-        if (eanStr.length() == 10 && !eanStr.startsWith("978")) {
-            eanStr = "978" + eanStr;
+
+        String eanStr = mTxtEan.getText().toString();
+
+        if (eanStr.length() == 10 && !eanStr.startsWith(ISBN_13_START)) {
+            eanStr = ISBN_13_START + eanStr;
         }
+
         return new CursorLoader(
                 getActivity(),
                 AlexandriaContract.BookEntry.buildFullBookUri(Long.parseLong(eanStr)),
@@ -202,52 +198,61 @@ public class AddBook extends Fragment implements LoaderManager.LoaderCallbacks<C
     }
 
     @Override
-    public void onLoadFinished(android.support.v4.content.Loader<Cursor> loader, Cursor data) {
+    public void onLoadFinished(Loader<Cursor> loader, Cursor data) {
         if (!data.moveToFirst()) {
             return;
         }
 
         String bookTitle = data.getString(data.getColumnIndex(AlexandriaContract.BookEntry.TITLE));
-        ((TextView) rootView.findViewById(R.id.bookTitle)).setText(bookTitle);
+        mBookTitle.setText(bookTitle);
 
         String bookSubTitle = data.getString(data.getColumnIndex(AlexandriaContract.BookEntry.SUBTITLE));
-        ((TextView) rootView.findViewById(R.id.bookSubTitle)).setText(bookSubTitle);
+        mBookSubTitle.setText(bookSubTitle);
 
         String authors = data.getString(data.getColumnIndex(AlexandriaContract.AuthorEntry.AUTHOR));
         String[] authorsArr = authors.split(",");
-        ((TextView) rootView.findViewById(R.id.authors)).setLines(authorsArr.length);
-        ((TextView) rootView.findViewById(R.id.authors)).setText(authors.replace(",", "\n"));
+
+        mAuthors.setLines(authorsArr.length);
+        mAuthors.setText(authors.replace(",", "\n"));
+
         String imgUrl = data.getString(data.getColumnIndex(AlexandriaContract.BookEntry.IMAGE_URL));
         if (Patterns.WEB_URL.matcher(imgUrl).matches()) {
-            new DownloadImage((ImageView) rootView.findViewById(R.id.bookCover)).execute(imgUrl);
-            rootView.findViewById(R.id.bookCover).setVisibility(View.VISIBLE);
+            new DownloadImage(mBookCover).execute(imgUrl);
+            mBookCover.setVisibility(View.VISIBLE);
         }
 
         String categories = data.getString(data.getColumnIndex(AlexandriaContract.CategoryEntry.CATEGORY));
-        ((TextView) rootView.findViewById(R.id.categories)).setText(categories);
+        mCategories.setText(categories);
 
-        rootView.findViewById(R.id.save_button).setVisibility(View.VISIBLE);
-        rootView.findViewById(R.id.delete_button).setVisibility(View.VISIBLE);
+        mNextButton.setVisibility(View.VISIBLE);
+        mDeleteButton.setVisibility(View.VISIBLE);
     }
 
     @Override
-    public void onLoaderReset(android.support.v4.content.Loader<Cursor> loader) {
-
+    public void onLoaderReset(Loader<Cursor> loader) {
+        //Nothing to do
     }
 
     private void clearFields() {
-        ((TextView) rootView.findViewById(R.id.bookTitle)).setText("");
-        ((TextView) rootView.findViewById(R.id.bookSubTitle)).setText("");
-        ((TextView) rootView.findViewById(R.id.authors)).setText("");
-        ((TextView) rootView.findViewById(R.id.categories)).setText("");
-        rootView.findViewById(R.id.bookCover).setVisibility(View.INVISIBLE);
-        rootView.findViewById(R.id.save_button).setVisibility(View.INVISIBLE);
-        rootView.findViewById(R.id.delete_button).setVisibility(View.INVISIBLE);
+        mBookTitle.setText("");
+        mBookSubTitle.setText("");
+        mAuthors.setText("");
+        mCategories.setText("");
+
+        mBookCover.setVisibility(View.INVISIBLE);
+        mNextButton.setVisibility(View.INVISIBLE);
+        mDeleteButton.setVisibility(View.INVISIBLE);
     }
 
     @Override
-    public void onAttach(Activity activity) {
-        super.onAttach(activity);
-        activity.setTitle(R.string.scan);
+    public void onAttach(Context context) {
+        super.onAttach(context);
+        getActivity().setTitle(R.string.scan);
+    }
+
+    @Override
+    public void onDestroyView() {
+        super.onDestroyView();
+        ButterKnife.unbind(this);
     }
 }
