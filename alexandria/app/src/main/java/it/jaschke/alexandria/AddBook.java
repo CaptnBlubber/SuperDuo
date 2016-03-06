@@ -5,6 +5,7 @@ import android.content.Context;
 import android.content.Intent;
 import android.database.Cursor;
 import android.os.Bundle;
+import android.support.design.widget.Snackbar;
 import android.support.v4.app.Fragment;
 import android.support.v4.app.LoaderManager;
 import android.support.v4.content.CursorLoader;
@@ -30,7 +31,7 @@ import it.jaschke.alexandria.services.DownloadImage;
 
 public class AddBook extends Fragment implements LoaderManager.LoaderCallbacks<Cursor> {
     private static final String TAG = "INTENT_TO_SCAN_ACTIVITY";
-    private EditText ean;
+    private EditText mTextEan;
     private final int LOADER_ID = 1;
     private View rootView;
     private final String EAN_CONTENT = "eanContent";
@@ -39,6 +40,7 @@ public class AddBook extends Fragment implements LoaderManager.LoaderCallbacks<C
 
     private String mScanFormat = "Format:";
     private String mScanContents = "Contents:";
+    private Snackbar mSnackbarNetworkError;
 
 
     public AddBook() {
@@ -47,8 +49,8 @@ public class AddBook extends Fragment implements LoaderManager.LoaderCallbacks<C
     @Override
     public void onSaveInstanceState(Bundle outState) {
         super.onSaveInstanceState(outState);
-        if (ean != null) {
-            outState.putString(EAN_CONTENT, ean.getText().toString());
+        if (mTextEan != null) {
+            outState.putString(EAN_CONTENT, mTextEan.getText().toString());
         }
     }
 
@@ -59,7 +61,7 @@ public class AddBook extends Fragment implements LoaderManager.LoaderCallbacks<C
         if (result != null) {
             String scanned_ean = result.getContents();
             if (!TextUtils.isEmpty(scanned_ean)) {
-                ean.setText(scanned_ean);
+                mTextEan.setText(scanned_ean);
             }
         }
     }
@@ -69,9 +71,9 @@ public class AddBook extends Fragment implements LoaderManager.LoaderCallbacks<C
     public View onCreateView(final LayoutInflater inflater, ViewGroup container, Bundle savedInstanceState) {
 
         rootView = inflater.inflate(R.layout.fragment_add_book, container, false);
-        ean = (EditText) rootView.findViewById(R.id.ean);
+        mTextEan = (EditText) rootView.findViewById(R.id.txt_ean);
 
-        ean.addTextChangedListener(new TextWatcher() {
+        mTextEan.addTextChangedListener(new TextWatcher() {
             @Override
             public void beforeTextChanged(CharSequence s, int start, int count, int after) {
                 //no need
@@ -84,21 +86,7 @@ public class AddBook extends Fragment implements LoaderManager.LoaderCallbacks<C
 
             @Override
             public void afterTextChanged(Editable s) {
-                String ean = s.toString();
-                //catch isbn10 numbers
-                if (ean.length() == 10 && !ean.startsWith("978")) {
-                    ean = "978" + ean;
-                }
-                if (ean.length() < 13) {
-                    clearFields();
-                    return;
-                }
-                //Once we have an ISBN, start a book intent
-                Intent bookIntent = new Intent(getActivity(), BookService.class);
-                bookIntent.putExtra(BookService.EAN, ean);
-                bookIntent.setAction(BookService.FETCH_BOOK);
-                getActivity().startService(bookIntent);
-                AddBook.this.restartLoader();
+                performSearch(s.toString());
             }
         });
 
@@ -126,7 +114,7 @@ public class AddBook extends Fragment implements LoaderManager.LoaderCallbacks<C
         rootView.findViewById(R.id.save_button).setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
-                ean.setText("");
+                mTextEan.setText("");
             }
         });
 
@@ -134,19 +122,56 @@ public class AddBook extends Fragment implements LoaderManager.LoaderCallbacks<C
             @Override
             public void onClick(View view) {
                 Intent bookIntent = new Intent(getActivity(), BookService.class);
-                bookIntent.putExtra(BookService.EAN, ean.getText().toString());
+                bookIntent.putExtra(BookService.EAN, mTextEan.getText().toString());
                 bookIntent.setAction(BookService.DELETE_BOOK);
                 getActivity().startService(bookIntent);
-                ean.setText("");
+                mTextEan.setText("");
             }
         });
 
         if (savedInstanceState != null) {
-            ean.setText(savedInstanceState.getString(EAN_CONTENT));
-            ean.setHint("");
+            mTextEan.setText(savedInstanceState.getString(EAN_CONTENT));
+            mTextEan.setHint("");
         }
 
         return rootView;
+    }
+
+    private void performSearch(String ean) {
+
+        //Once we have an ISBN, start a book intent
+        if (!ConnectionUtils.isInternetConnectionAvailable(getContext())) {
+            if (mSnackbarNetworkError != null && mSnackbarNetworkError.isShown()) {
+                mSnackbarNetworkError.dismiss();
+            }
+
+            mSnackbarNetworkError = Snackbar.make(rootView, R.string.no_connection_warning, Snackbar.LENGTH_LONG);
+            final String finalEan = ean;
+            mSnackbarNetworkError.setAction(R.string.action_retry, new View.OnClickListener() {
+                @Override
+                public void onClick(View v) {
+                    performSearch(finalEan);
+                }
+            });
+            mSnackbarNetworkError.show();
+
+            return;
+        }
+
+        //catch isbn10 numbers
+        if (ean.length() == 10 && !ean.startsWith("978")) {
+            ean = "978" + ean;
+        }
+        if (ean.length() < 13) {
+            clearFields();
+            return;
+        }
+        //Once we have an ISBN, start a book intent
+        Intent bookIntent = new Intent(getActivity(), BookService.class);
+        bookIntent.putExtra(BookService.EAN, ean);
+        bookIntent.setAction(BookService.FETCH_BOOK);
+        getActivity().startService(bookIntent);
+        restartLoader();
     }
 
     private void scanBarcode() {
@@ -159,10 +184,10 @@ public class AddBook extends Fragment implements LoaderManager.LoaderCallbacks<C
 
     @Override
     public android.support.v4.content.Loader<Cursor> onCreateLoader(int id, Bundle args) {
-        if (ean.getText().length() == 0) {
+        if (mTextEan.getText().length() == 0) {
             return null;
         }
-        String eanStr = ean.getText().toString();
+        String eanStr = mTextEan.getText().toString();
         if (eanStr.length() == 10 && !eanStr.startsWith("978")) {
             eanStr = "978" + eanStr;
         }
