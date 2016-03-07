@@ -77,4 +77,8 @@
     <color name="red14">#FFE4E4</color>
 
 
+    <color name="widget_background">#FFFFFF</color>
+    <color name="widget_text_color">@color/red01</color>
+
+
 </resources>

@@ -32,6 +32,21 @@
                 android:value="barqsoft.footballscores.MainActivity"/>
         </activity>
         <service android:name=".service.myFetchService"/>
+
+
+        <receiver
+            android:icon="@drawable/ic_launcher"
+            android:label="Latest Scores"
+            android:name=".widget.LatestMatchWidgetProvider" >
+            <intent-filter >
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+            </intent-filter>
+
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/latest_match_widget" />
+        </receiver>
+
     </application>
 
 </manifest>
