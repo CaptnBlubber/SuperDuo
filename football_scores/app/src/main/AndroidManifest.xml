@@ -3,6 +3,7 @@
           xmlns:android="http://schemas.android.com/apk/res/android">
 
     <uses-permission android:name="android.permission.INTERNET"/>
+    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE"/>
 
     <application
         android:allowBackup="true"
@@ -35,17 +36,36 @@
 
 
         <receiver
+            android:name=".widget.StackMatchesWidgetProvider"
             android:icon="@drawable/ic_launcher"
-            android:label="Latest Scores"
-            android:name=".widget.LatestMatchWidgetProvider" >
-            <intent-filter >
-                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+            android:label="Latest Matches">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE"/>
             </intent-filter>
 
             <meta-data
                 android:name="android.appwidget.provider"
-                android:resource="@xml/latest_match_widget" />
+                android:resource="@xml/stack_matches_widget"/>
         </receiver>
+
+        <receiver
+            android:name=".widget.LatestMatchWidgetProvider"
+            android:icon="@drawable/ic_launcher"
+            android:label="Latest Match">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE"/>
+            </intent-filter>
+
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/latest_match_widget"/>
+        </receiver>
+
+
+        <service
+            android:name=".widget.StackWidgetService"
+            android:exported="false"
+            android:permission="android.permission.BIND_REMOTEVIEWS"/>
 
     </application>
 

@@ -36,7 +36,7 @@ public class LatestMatchWidgetProvider extends AppWidgetProvider {
         interactor = new FixturesInteractorImpl(context);
 
         interactor
-                .loadLatestFixture("n2")
+                .loadLatestFixture(mContext.getString(R.string.latest_widget_timeframe))
                 .observeOn(AndroidSchedulers.mainThread())
                 .subscribe(
                         fixture -> displayFixture(fixture, appWidgetManager, appWidgetIds),
@@ -106,42 +106,5 @@ public class LatestMatchWidgetProvider extends AppWidgetProvider {
         return String.format("%d - %d", result.getGoalsHomeTeam(), result.getGoalsAwayTeam());
     }
 
-    /**
-     * View Model For Remote Views containing  All necessary Data
-     */
-    class Match {
-        private Team homeTeam;
-        private Team awayTeam;
-        private Fixture fixture;
 
-        public Match(Team homeTeam, Team awayTeam, Fixture fixture) {
-            this.homeTeam = homeTeam;
-            this.awayTeam = awayTeam;
-            this.fixture = fixture;
-        }
-
-        public Team getHomeTeam() {
-            return homeTeam;
-        }
-
-        public void setHomeTeam(Team homeTeam) {
-            this.homeTeam = homeTeam;
-        }
-
-        public Team getAwayTeam() {
-            return awayTeam;
-        }
-
-        public void setAwayTeam(Team awayTeam) {
-            this.awayTeam = awayTeam;
-        }
-
-        public Fixture getFixture() {
-            return fixture;
-        }
-
-        public void setFixture(Fixture fixture) {
-            this.fixture = fixture;
-        }
-    }
 }

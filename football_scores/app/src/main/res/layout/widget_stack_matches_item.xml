@@ -1,0 +1,50 @@
+<?xml version="1.0" encoding="utf-8"?>
+<RelativeLayout android:id="@+id/widget_latest_fixtures"
+                xmlns:android="http://schemas.android.com/apk/res/android"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:layout_margin="@dimen/widget_margin"
+                android:background="@color/widget_background"
+                android:orientation="horizontal"
+                android:paddingBottom="@dimen/widget_latest_match_padding_vertical"
+                android:paddingTop="@dimen/widget_latest_match_padding_vertical">
+
+
+
+    <TextView
+        android:layout_alignParentTop="true"
+        android:layout_alignParentEnd="true"
+        android:layout_alignParentRight="true"
+        android:id="@+id/score"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:gravity="center"
+        android:text="13 - 37"
+        android:textSize="@dimen/Score"
+        android:textStyle="bold"/>
+
+    <TextView
+        android:id="@+id/teams"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_gravity="center"
+        android:gravity="center"
+        android:maxLines="1"
+        android:text="Team a vs. Team B"
+        android:textSize="@dimen/widget_latest_match_team_names"
+        android:textStyle="bold"
+        android:layout_below="@id/score"/>
+
+    <!-- Time -->
+    <TextView
+        android:id="@+id/date_textview"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_below="@+id/teams"
+        android:layout_gravity="center"
+        android:gravity="center"
+        android:text="date"
+        />
+
+
+</RelativeLayout>
