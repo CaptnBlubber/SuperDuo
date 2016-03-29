@@ -2,12 +2,12 @@ package barqsoft.footballscores;
 
 import android.content.Intent;
 import android.os.Bundle;
-import android.support.v7.app.ActionBarActivity;
+import android.support.v7.app.AppCompatActivity;
 import android.util.Log;
 import android.view.Menu;
 import android.view.MenuItem;
 
-public class MainActivity extends ActionBarActivity {
+public class MainActivity extends AppCompatActivity {
     public static int selected_match_id;
     public static int current_fragment = 2;
     public static String LOG_TAG = "MainActivity";
@@ -30,9 +30,9 @@ public class MainActivity extends ActionBarActivity {
     @Override
     protected void onSaveInstanceState(Bundle outState) {
         Log.v(save_tag, "will save");
-        Log.v(save_tag, "fragment: " + String.valueOf(my_main.mPagerHandler.getCurrentItem()));
+        Log.v(save_tag, "fragment: " + String.valueOf(my_main.mViewpager.getCurrentItem()));
         Log.v(save_tag, "selected id: " + selected_match_id);
-        outState.putInt("Pager_Current", my_main.mPagerHandler.getCurrentItem());
+        outState.putInt("Pager_Current", my_main.mViewpager.getCurrentItem());
         outState.putInt("Selected_match", selected_match_id);
         getSupportFragmentManager().putFragment(outState, "my_main", my_main);
         super.onSaveInstanceState(outState);

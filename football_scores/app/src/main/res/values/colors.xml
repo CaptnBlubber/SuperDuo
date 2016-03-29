@@ -80,5 +80,11 @@
     <color name="widget_background">#FFFFFF</color>
     <color name="widget_text_color">@color/red01</color>
 
+    <color name="colorPrimary">#125688</color>
+    <color name="colorPrimaryDark">#125688</color>
+    <color name="textColorPrimary">#FFFFFF</color>
+    <color name="windowBackground">#FFFFFF</color>
+    <color name="navigationBarColor">#000000</color>
+    <color name="colorAccent">#c8e8ff</color>c
 
 </resources>

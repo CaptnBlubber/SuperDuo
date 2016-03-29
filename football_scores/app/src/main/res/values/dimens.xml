@@ -25,4 +25,15 @@
 
     <dimen name="widget_margin">8dp</dimen>
 
+
+    <dimen name="card_top_padding">24dp</dimen>
+    <dimen name="card_bottom_padding">16dp</dimen>
+    <dimen name="card_button_margin">8dp</dimen>
+
+    <dimen name="card_margin_horizontal">4dp</dimen>
+    <dimen name="card_margin_vertical">8dp</dimen>
+    <dimen name="card_padding">16dp</dimen>
+
+    <dimen name="widget_padding">6dp</dimen>
+
 </resources>
