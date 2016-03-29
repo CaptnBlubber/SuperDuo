@@ -113,9 +113,9 @@
             style="@style/Widget.AppCompat.ActionButton"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:gravity="center"
             android:layout_margin="@dimen/card_button_margin"
             android:contentDescription="@string/share_description"
+            android:gravity="center"
             android:text="@string/share"
             android:textColor="@color/colorPrimary"
             android:visibility="visible"/>
